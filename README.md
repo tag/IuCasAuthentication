@@ -44,14 +44,14 @@ You should only authenticate once per session, and store a successful authentica
 $appUrl = 'http://localhost/login-validate';
 $casHelper = new \IuCas\IuCasAuthentication($appUrl);
 
-header('Location: ' . $casHelper, true, 303);
+header('Location: ' . $casHelper->getCasLoginUrl(), true, 303);
 exit;
 ```
 
 ```php
 // File: login-validate.php
 
-// Remember, your applicaiton URL in validation must match the one passed in the authentication step
+// Remember, your application URL in validation must match the one passed in the authentication step
 $appUrl = 'http://localhost/login-validate';
 $casHelper = new \IuCas\IuCasAuthentication($appUrl);
 
@@ -78,12 +78,12 @@ $app->get('/login', function (Request $request, Response $response) {
     $appUrl = 'http://localhost/login-validate';
     $casHelper = new \IuCas\IuCasAuthentication($appUrl);
     
-    return $response->withRedirect($casHelper->getLoginUrl(), 303);
+    return $response->withRedirect($casHelper->getCasLoginUrl(), 303);
 });
 
 $app->get('/login-validate', function (Request $request, Response $response) {
     
-    // Remember, your applicaiton URL in validation must match the one passed in the authentication step
+    // Remember, your application URL in validation must match the one passed in the authentication step
     $appUrl = 'http://localhost/login-validate';
     $casHelper = new \IuCas\IuCasAuthentication($appUrl);
     $casHelper->setLogger($this->get('logger'));
