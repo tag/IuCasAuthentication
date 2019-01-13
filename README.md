@@ -8,12 +8,12 @@ The preferred method of installation is with [Composer](https://getcomposer.org)
 ### Install with Composer
 Add the following to your `composer.json` file:
 ```
-"parsedown/twig": "~1.1"
+"tag/iu-cas": ">=0.1"
 ```
 
 Or, Install the Composer package:
 ```
-composer require erusev/parsedown
+composer require tag/iu-cas
 ```
 
 ### Install without Composer
