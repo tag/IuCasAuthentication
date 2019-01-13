@@ -1,5 +1,5 @@
 {
-    "name": "tag/IuCasAuthentication",
+    "name": "tag/iu-cas",
     "description": "Authentication class for CAS at IU.",
     "keywords": ["CAS", "IU", "Authentication"],
     "homepage": "https://github.com/tag/IuCasAuthentication",
