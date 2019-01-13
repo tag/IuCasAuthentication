@@ -1,0 +1,31 @@
+{
+    "name": "tag/IuCasAuthentication",
+    "description": "Authentication class for CAS at IU.",
+    "keywords": ["CAS", "IU", "Authentication"],
+    "homepage": "https://github.com/tag/IuCasAuthentication",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tom Gregory",
+            "email": "tomgreg@iu.edu",
+            "homepage": "http://alt-tag.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.6.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^4.8.35"
+    },
+    "autoload": {
+        "psr-4": {
+            "IuCas\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "IuCasTest": "test/"
+        }
+    }
+}
