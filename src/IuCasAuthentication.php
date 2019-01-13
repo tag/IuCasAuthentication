@@ -70,7 +70,7 @@ class IuCasAuthentication
     }
     
     public function getCasTicket() {
-        return isset($_GET['casticket']}) ? $_GET['casticket']} : '';
+        return isset($_GET['casticket']) ? $_GET['casticket'] : '';
     }
     
     public function getCasValidationUrl() {
@@ -119,7 +119,7 @@ class IuCasAuthentication
         $result = explode("\n", $casAnswer, 2);
         
         // CAS sends extra whitespace, so must be trimmed
-        return count($result) === 2 && trim($result[0]) === "yes" : trim($result[1]) : null;
+        return count($result) === 2 && trim($result[0]) === "yes" ? trim($result[1]) : null;
     }
     
     public function getLogoutUrl() {
