@@ -179,7 +179,7 @@ class IuCasAuthentication
      * @throws InvalidArgumentException
      * @return mixed
      */
-    public authenticate($onFailure = true, $onSuccess = true) {
+    public function authenticate($onFailure = true, $onSuccess = true) {
         $success = false;
         if ($this->getUserName()) {
             $success = true;
