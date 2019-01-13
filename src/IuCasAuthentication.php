@@ -133,13 +133,13 @@ class IuCasAuthentication
     
     public function getCurrentUrl() {
         $url = 'http';
-        $isHttps = $_SERVER["HTTPS"] == "on" ? true : false;
+        $isHttps = empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] == 'off' ? false : true;
         
         $url .= ($isHttps ? 's' : '') .'s://' . $_SERVER["HTTP_HOST"];
         
         if (($isHttps && $_SERVER["SERVER_PORT"] != '443')
            || (!$isHttps && $_SERVER["SERVER_PORT"] != '80')) {
-            $url .= .":".$_SERVER["SERVER_PORT"]
+            $url .= ":".$_SERVER["SERVER_PORT"];
         }
         $url .= $_SERVER["REQUEST_URI"];
 
@@ -157,7 +157,7 @@ class IuCasAuthentication
         }
         
         $var = $this->getSessionVar();
-        $this->userName = isset($_SESSION[$var]) ? $_SESSION[$var] : '';
+        $this->userName = isset($_SESSION[$var]) ? $_SESSION[$var] : null;
         return $this->userName;
     }
     
@@ -183,15 +183,15 @@ class IuCasAuthentication
         $success = false;
         if ($this->getUserName()) {
             $success = true;
-        } elseif ($casHelper->getCasTicket()) { // Have been to CAS, have ticket
-            $success = $casHelper->validate();
+        } elseif ($this->getCasTicket()) { // Have been to CAS, have ticket
+            $success = $this->validate();
         } else { // Must go to CAS to authenticate
-            header('Location: ' . $casHelper->getCasLoginUrl(), true, 303);
+            header('Location: ' . $this->getCasLoginUrl(), true, 303);
             exit;
         }
         
         if ($success) {
-            $this->userName = $succcess;
+            $this->userName = $success;
             if ($onSuccess === true) {
                 $this->setUserName($success); // Also sets session variable
                 return;
@@ -222,5 +222,8 @@ class IuCasAuthentication
         }
         throw new InvalidArgumentException(__CLASS__.'#authenticate() received a malformed onFailure parameter');
     }
+    
+    public function logout() {
+        $this->setUserName(null);
+    }
 }
-
