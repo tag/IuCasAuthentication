@@ -26,6 +26,8 @@ class IuCasAuthentication
     
     protected $logger;
     
+    protected $userName;
+    
     /**
      * @param string $redirect URL for your application that should be redirected to for validation after authentication.
      *                         Must be the same during authentication and validation steps.
@@ -33,7 +35,9 @@ class IuCasAuthentication
      * @param LoggerInterface $logger (optional) A reference to a PSR-3 logger (such as Monolog). Used to log validation errors, if available.
      *
      */
-    public function __construct($redirect, $service="IU", $logger=null) {
+    public function __construct($redirect='', $service="IU", $logger=null) {
+        $redirect = $redirect ? $redirect : $this->getCurrentUrl();
+        
         $url = getenv('CAS_LOGIN_URL');
         $this->casLoginUrl = $url ? $url : 'https://cas.iu.edu/cas/login';
         
@@ -125,6 +129,98 @@ class IuCasAuthentication
     public function getLogoutUrl() {
         $url = getenv('CAS_LOGOUT_URL');
         return $url ? $url : 'https://cas.iu.edu/cas/logout';
+    }
+    
+    public function getCurrentUrl() {
+        $url = 'http';
+        $isHttps = $_SERVER["HTTPS"] == "on" ? true : false;
+        
+        $url .= ($isHttps ? 's' : '') .'s://' . $_SERVER["HTTP_HOST"];
+        
+        if (($isHttps && $_SERVER["SERVER_PORT"] != '443')
+           || (!$isHttps && $_SERVER["SERVER_PORT"] != '80')) {
+            $url .= .":".$_SERVER["SERVER_PORT"]
+        }
+        $url .= $_SERVER["REQUEST_URI"];
+
+        return $url;
+    }
+    
+    public function getSessionVar() {
+        $var = getenv('CAS_SESSION_VAR');
+        return $var ? $var : 'CAS_USER';
+    }
+    
+    public function getUserName() {
+        if ($this->userName) {
+            return $this->userName;
+        }
+        
+        $var = $this->getSessionVar();
+        $this->userName = isset($_SESSION[$var]) ? $_SESSION[$var] : '';
+        return $this->userName;
+    }
+    
+    public function setUserName($name) {
+        $this->userName = $name;
+        
+        $var = $this->getSessionVar();
+        $_SESSION[$var] = $name;
+    }
+    
+    /**
+     *
+     * @param callable|string|bool $onFailure Any of a) a URL to redirect to and exit on failure,
+     *                                        b) a callable on failure (call passes current URL), c) a `bool` value. If a boolean is passed,
+     *                                        sets a "401 Unauthorized" header and exits if `true`. (Defaults to `true`.)
+     * @param callable|string|bool $onSuccess Any of a) a URL to redirect to and exit on success,
+     *                                        b) a callable on success (call passes user name and current URL), c) a `bool` value. If a boolean is passed,
+     *                                        sets a `$_SESSION` variable if `true`, and takes no action if `false`. (Defaults to `true`.)
+     * @throws InvalidArgumentException
+     * @return mixed
+     */
+    public authenticate($onFailure = true, $onSuccess = true) {
+        $success = false;
+        if ($this->getUserName()) {
+            $success = true;
+        } elseif ($casHelper->getCasTicket()) { // Have been to CAS, have ticket
+            $success = $casHelper->validate();
+        } else { // Must go to CAS to authenticate
+            header('Location: ' . $casHelper->getCasLoginUrl(), true, 303);
+            exit;
+        }
+        
+        if ($success) {
+            $this->userName = $succcess;
+            if ($onSuccess === true) {
+                $this->setUserName($success); // Also sets session variable
+                return;
+            } elseif ($onSuccess === false) {
+                return;
+            } elseif (is_callable($onSuccess)) {
+                return call_user_func ($onSuccess, $this->userName, $this->getCurrentUrl());
+            } elseif (is_string($onSuccess)) {
+                header('Location: '.$onSuccess, true, 303);
+                exit;
+            }
+            throw new InvalidArgumentException(__CLASS__.'#authenticate() received a malformed onSuccess parameter');
+        }
+        
+        // i.e., not $success
+        if ($onFailure === true) {
+            header("HTTP/1.1 401 Unauthorized");
+            exit;
+        } elseif ($onFailure === false) {
+            header("HTTP/1.1 401 Unauthorized");
+            return;
+        } elseif (is_callable($onFailure)) {
+            return call_user_func ($onFailure, $this->getCurrentUrl());
+        } elseif (is_string($onFailure)) {
+            header("HTTP/1.1 401 Unauthorized");
+            header('Location: '.$onFailure, true, 303);
+            exit;
+        }
+        throw new InvalidArgumentException(__CLASS__.'#authenticate() received a malformed onFailure parameter');
     }
 }
 
