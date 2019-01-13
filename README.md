@@ -151,7 +151,7 @@ $app->get('/login-validate', function (Request $request, Response $response) {
             return $response->withRedirect('/logout', 401); // Failure, go to page that doesn't require authentication
         },
         function ($username) use (&$response) {
-            $_SESSION['username'] = $username;
+            // Do other session-setting stuff here, if desired
             return $response->withRedirect('/home', 303); // Success, logged in
         }
     );
