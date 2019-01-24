@@ -213,8 +213,8 @@ class IuCasAuthentication
             $success = $this->validate();
         } else { // Must go to CAS to authenticate
             header('Location: ' . $this->getCasLoginUrl(), true, 303);
-            $this->exit();
-            return; // In case exit() has been overridden
+            $this->doExit();
+            return; // In case doExit() has been overridden
         }
         
         if ($success) {
@@ -228,8 +228,8 @@ class IuCasAuthentication
                 return call_user_func($onSuccess, $this->userName, $this->getCurrentUrl());
             } elseif (is_string($onSuccess)) {
                 header('Location: '.$onSuccess, true, 303);
-                $this->exit();
-                return; // In case exit() has been overridden
+                $this->doExit();
+                return; // In case doExit() has been overridden
             }
             throw new InvalidArgumentException(__CLASS__.'#authenticate() received a malformed onSuccess parameter');
         }
@@ -238,7 +238,7 @@ class IuCasAuthentication
         if (is_bool($onFailure)) {
             header("HTTP/1.1 401 Unauthorized");
             if ($onFailure) {
-                $this->exit();
+                $this->doExit();
             }
             return;
         } elseif (is_callable($onFailure)) {
@@ -246,8 +246,8 @@ class IuCasAuthentication
         } elseif (is_string($onFailure)) {
             header("HTTP/1.1 401 Unauthorized");
             header('Location: '.$onFailure, true, 303);
-            $this->exit();
-            return; // In case exit() has been overridden
+            $this->doExit();
+            return; // In case doExit() has been overridden
         }
         throw new InvalidArgumentException(__CLASS__.'#authenticate() received a malformed onFailure parameter');
     }
@@ -257,7 +257,7 @@ class IuCasAuthentication
         $this->setUserName(null);
     }
     
-    public function exit()
+    public function doExit() // In php5.6 may not be named `exit()`?!
     {
         call_user_func($this->exitCallable);
     }
