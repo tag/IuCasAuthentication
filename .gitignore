@@ -1,0 +1,4 @@
+log/*.log
+vendor
+.DS_Store
+composer.lock
