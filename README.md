@@ -1,3 +1,5 @@
+![Travis-CI build status](https://travis-ci.com/tag/IuCasAuthentication.svg?branch=master)
+
 # IuCasAuthentication
 A CAS authentication object that works with CAS @ IU. Using [CAS at IU](https://kb.iu.edu/d/atfc) isn't complicated, and UITS even provides some [sample code for PHP](https://kb.iu.edu/d/bfru). This helper class aims to make the process even easier.
 
