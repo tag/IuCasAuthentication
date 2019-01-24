@@ -63,7 +63,7 @@ class IuCasTest extends TestCase
         $this->cas = new IuCasAuthentication();
         
         //Unset any environment variables, if present
-        $this->env = array_intersect_key (getenv(), [
+        $this->env = array_intersect_key (PHP_MAJOR_VERSION < 7 ? $_ENV : getenv(), [
             'CAS_LOGIN_URL' => false,       // defaults to 'https://cas.iu.edu/cas/login'
             'CAS_VALIDATION_URL' => false, // defaults to 'https://cas.iu.edu/cas/validate'
             'CAS_LOGOUT_URL' => false,     // defaults to 'https://cas.iu.edu/cas/logout'
