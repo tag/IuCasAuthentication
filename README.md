@@ -49,7 +49,7 @@ This code would need to be called on every page you wish protected.
 
 $casHelper = new \IuCas\IuCasAuthentication();
 $casHelper->authenticate(); // Default behavior is 401 and die on failure.
-                            // Pass a URL to redirect on failure insteead; see documentation for other options
+                            // Pass a URL to redirect on failure instead; see documentation for other options
 
 // Continue processing file as normal
 ```
@@ -91,7 +91,7 @@ if (!$casHelper->getUserName()) {
 
 ### Example with login and validation on different app-specific pages
 
-You might use this example code to only implement CAS authentication at a specific URL. Instead of calling `authenticate()`
+You might use this example code to only implement CAS authentication at a specific URL. Instead of calling `authenticate()`, you might do the following:
 
 ```php
 <?php
@@ -163,11 +163,23 @@ $app->get('/login-validate', function (Request $request, Response $response) {
 
 You may pass an optional PSR-3 logger as the third parameter of the constructor. If the validation step fails, details are sent to the logger, if available.
 
-## Default CAS URLs
+## Environment variables
+[Best practice][env-how-to] in PHP is to put important configuration options in environment variables, perhaps in your virtual host configuration (e.g., `httpd.conf` or `.htacess`) or in a `.env` file. [Several][env1] [libraries][env2] are available via composer to assit in loading `.env` files.
 
-The three necessary URLs (login, validation, logout) as described by https://kb.iu.edu/d/atfc are included by default
-but may be overridden through the use of the following environment variables.
+[env-how-to]: https://jolicode.com/blog/what-you-need-to-know-about-environment-variables-with-php
+[env1]: https://packagist.org/packages/symfony/dotenv
+[env2]: https://packagist.org/packages/josegonzalez/dotenv
+
+In most cases, it is not necessary to create environment variables to modify the default behavior of this library for use with CAS at IU.
+
+The three necessary URLs (login, validation, logout) as described by https://kb.iu.edu/d/atfc are included by default but may be overridden through the use of the following environment variables.
 
 * `CAS_LOGIN_URL` defaults to `'https://cas.iu.edu/cas/login'`
 * `CAS_VALIDATION_URL` defaults to `'https://cas.iu.edu/cas/validate'`
 * `CAS_LOGOUT_URL` defaults to `'https://cas.iu.edu/cas/logout'`
+
+One additional environment variable is used by `#getSessionVar()` and `#authenticate()` to identify the session key used to store the user name response from CAS.
+
+* `CAS_SESSION_VAR` defaults to `'CAS_USER'`, therefore the user name of the active user is available at `$_SESSION[getenv('CAS_SESSION_VAR')]`.
+
+If storing authentication status somewhere other than the session variable, it's probably best to use the callback variation of `#authenticate()`.
