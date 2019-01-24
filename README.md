@@ -3,7 +3,7 @@
 # IuCasAuthentication
 A CAS authentication object that works with CAS @ IU. Using [CAS at IU](https://kb.iu.edu/d/atfc) isn't complicated, and UITS even provides some [sample code for PHP](https://kb.iu.edu/d/bfru). This helper class aims to make the process even easier.
 
-Obeys PSR-4 and PSR-2 standards.
+Follows PSR-4 and PSR-2 standards. Tested on PHP v5.6 and PHP v7.1.
 
 ## Installation
 
@@ -12,10 +12,10 @@ The preferred method of installation is with [Composer](https://getcomposer.org)
 ### Install with Composer
 Add the following to your `composer.json` file:
 ```
-"tag/iu-cas": ">=0.1"
+"tag/iu-cas": ">=0.3"
 ```
 
-Or, Install the Composer package:
+Or, install the Composer package:
 ```
 composer require tag/iu-cas
 ```
@@ -54,6 +54,9 @@ $casHelper->authenticate(); // Default behavior is 401 and die on failure.
                             // Pass a URL to redirect on failure instead; see documentation for other options
 
 // Continue processing file as normal
+
+// After authentication, user name is available
+$userName = $casHelper->getUserName(); // Stored in $_SESSION, retrieved from $_SESSION by `IuCasAuthentication`
 ```
 
 The `authenticate()` method accepts zero to two parameters.
@@ -63,12 +66,30 @@ The `authenticate()` method accepts zero to two parameters.
 
 If a [callable](http://php.net/manual/en/language.types.callable.php) is passed, the results of the callable are returned.
 
-### Manage login and validation on the same page, manually
+### Recommended method
+
+Rather than relying on the built-in behavior, pass explicit callback functions for authentication failure or success. Apply this code to each page you wish protected.
 
 ```php
-<?php
-// File: any.php
+$casHelper = new \IuCas\IuCasAuthentication();
 
+$casHelper->authenticate(
+        function () {
+            http_response_code(401);     // Unauthorized
+            header('Location: /public'); // Failure, go to page that doesn't require authentication
+            exit;
+        },
+        function ($username) {
+            // Success, store the user
+            $casHelper->setUserName($success); // Sets to $_SESSION['CAS_USER']; key may be overridden via environment
+        }
+    );
+```
+
+### Manage login and validation manually
+Although the `#authenticate()` function does all of the work for you, it's possible to manage the authentication process manually if you wish.
+
+```php
 $casHelper = new \IuCas\IuCasAuthentication();
 
 if (!$casHelper->getUserName()) {
@@ -91,7 +112,7 @@ if (!$casHelper->getUserName()) {
 // Continue processing file as normal
 ```
 
-### Example with login and validation on different app-specific pages
+### Example with login and validation on different pages in your app
 
 You might use this example code to only implement CAS authentication at a specific URL. Instead of calling `authenticate()`, you might do the following:
 
@@ -127,7 +148,6 @@ if ($result) {
 
 exit;
 ```
-
 
 
 ### Slim Framework example
@@ -185,3 +205,17 @@ One additional environment variable is used by `#getSessionVar()` and `#authenti
 * `CAS_SESSION_VAR` defaults to `'CAS_USER'`, therefore the user name of the active user is available at `$_SESSION[getenv('CAS_SESSION_VAR')]`.
 
 If storing authentication status somewhere other than the session variable, it's probably best to use the callback variation of `#authenticate()`.
+
+# Release history
+
+* v0.3
+  - Stable
+  - Last full release that supports PHP 5.6+
+  
+### Roadmap (TODO)
+
+- Make PHP 7.1+ only, apply type-hints
+- Make get/set username overridable (can be done with a subclass?)
+- auth fail/success as callbacks only
+
+  
