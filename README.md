@@ -30,15 +30,15 @@ Download the `IuCasAuthentication` class, and include or require it on your page
 
 ## Using `IuCasAuthentication`
 
-1. Create a new authentication object.
+1. Create a new authentication object. All arguments to the constructor are optional.
 
-   * The first is the URL authentication should redirect to. Must be the same during authentication and validation steps. Defaults to the current URL.
+   * The first is the URL if your application that CAS should redirect to after log in. Must be the same during authentication and validation steps. Defaults to the current URL.
    * An optional second argument must be one of the [CAS application codes at IU](https://kb.iu.edu/d/alqm). Defaults to `'IU'`.
    * An optional third argument is a reference to a [PSR-3][psr3] logger (such as Monolog). Used to log remote errors, if available. Defaults to `null``.
 
-2. Call `#authenticate()`
+2. Call `#authenticate()`. Optional arguments are avaialable to override default behavior.
 
-Although CAS expects applicaitons to only authenticate once per session, the `IuCasAuthentication` class stores a
+Because CAS expects applications to only authenticate once per session, the `IuCasAuthentication` class stores a
 successful authentication in `$_SESSION`, so it is safe to use on every page (or as Middleware) to test authentication.
 
 If the username is in `$_SESSION`, `#authenticate()` considers the user successfully authenticated, and does not attempt to check against CAS.
@@ -55,7 +55,7 @@ This code would need to be called on every page you wish protected.
 // File: any.php
 
 $casHelper = new \IuCas\IuCasAuthentication();
-$casHelper->authenticate(); // Default behavior is 401 and die on failure.
+$casHelper->authenticate(); // Default behavior is 401 (Unauthorized) and die on failure.
                             // Pass a callback if other behavior is desired; see documentation for other options
 
 // Continue processing file as normal
@@ -71,7 +71,7 @@ Rather than relying on the built-in behavior, pass explicit [callback functions]
 The two callbacks are:
 
 1. On Failure: Defaults to setting a `"401 Unauthorized"` header and `exit;`.
-2. On Success: Defaults to setting the user name returned from CAS in session and returning.
+2. On Success: Defaults to putting the user name returned from CAS in `$_SESSION` and returning.
 
 ```php
 $casHelper = new \IuCas\IuCasAuthentication();
