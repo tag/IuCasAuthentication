@@ -56,7 +56,7 @@ This code would need to be called on every page you wish protected.
 
 $casHelper = new \IuCas\IuCasAuthentication();
 $casHelper->authenticate(); // Default behavior is 401 and die on failure.
-                            // Pass a URL to redirect on failure instead; see documentation for other options
+                            // Pass a callback if other behavior is desired; see documentation for other options
 
 // Continue processing file as normal
 
