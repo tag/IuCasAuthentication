@@ -7,17 +7,17 @@
  * file that was distributed with this source code.
  */
  
-namespace IuCas\IuCasAuthentication\Tests;
+namespace IuCas\Test;
 
 use PHPUnit\Framework\TestCase;
 use IuCas\IuCasAuthentication;
 
-// use GuzzleHttp\Client;
-// use GuzzleHttp\Psr7\Response;
-// use GuzzleHttp\Tests\Server;
-
 class IuCasTest extends TestCase
 {
+    // https://stackoverflow.com/questions/9370927/how-to-preserve-session-through-all-tests-on-phpunit
+    protected $backupGlobalsBlacklist = array('_SESSION');
+    
+    
     protected $cas = null;
     protected $env;
 
@@ -43,10 +43,12 @@ class IuCasTest extends TestCase
         if (file_exists(self::$pidFile)) {
             $pids = file(self::$pidFile);
             
-            foreach ($pids as $pid) {
-                $pid = (int)$pid;
-                if (posix_getpgid($pid)) { // Check if pid is still active
-                    shell_exec('kill -9 ' . $pid);
+            if ($pids) {
+                foreach ($pids as $pid) {
+                    $pid = (int)$pid;
+                    if (posix_getpgid($pid)) { // Check if pid is still active
+                        shell_exec('kill -9 ' . $pid);
+                    }
                 }
             }
             unlink(self::$pidFile);
@@ -63,7 +65,7 @@ class IuCasTest extends TestCase
         $this->cas = new IuCasAuthentication();
         
         //Unset any environment variables, if present
-        $this->env = array_intersect_key (PHP_MAJOR_VERSION < 7 ? $_ENV : getenv(), [
+        $this->env = array_intersect_key (getenv(), [
             'CAS_LOGIN_URL' => false,       // defaults to 'https://cas.iu.edu/cas/login'
             'CAS_VALIDATION_URL' => false, // defaults to 'https://cas.iu.edu/cas/validate'
             'CAS_LOGOUT_URL' => false,     // defaults to 'https://cas.iu.edu/cas/logout'
@@ -81,30 +83,35 @@ class IuCasTest extends TestCase
             putenv("{$key}={$val}"); // re-sets
         }
     }
-        
+    
+    /**
+     * @runInSeparateProcess
+     */
     public function testBaseConfiguration()
     {
-        
         $this->assertSame('CAS_USER', $this->cas->getSessionVar());
-        $this->assertSame('https://cas.iu.edu/cas/logout', $this->cas->getLogoutUrl());
+        $this->assertSame(IuCasAuthentication::CAS_LOGOUT_URL, $this->cas->getLogoutUrl());
         
         $url = $this->cas->getCasLoginUrl();
-          // https://cas.iu.edu/cas/login?cassvc=IU&casurl=https%3A%2F%2Flocalhost%3A8123%2Ftest
         
-        $this->assertSame('https://cas.iu.edu/cas/login', strstr($url, '?', true));
+        $this->assertSame(IuCasAuthentication::CAS_LOGIN_URL, strstr($url, '?', true));
 
         $url = parse_url($url);
         $vars = [];
-        parse_str($url['query'], $vars);
-        $this->assertSame('IU', $vars['cassvc']);
-        
-        //$this->assertSame($this->localUrl, rawurldecode($vars['casurl']));
-
+        if (!is_array($url) || !isset($url['query'])) {
+            $this->fail('Malformed url.');
+        } else {
+            parse_str($url['query'], $vars);
+            $this->assertSame('IU', $vars['cassvc']);
+        }
 
         $url = $this->cas->getCasValidationUrl();
-          // https://cas.iu.edu/cas/validate?cassvc=IU&casurl=http%3A%2F%2Flocalhost%3A8123%2Ftest&casticket=
         
-        $this->assertSame('https://cas.iu.edu/cas/validate', strstr($url, '?', true));
+        $this->assertSame(IuCasAuthentication::CAS_VALIDATION_URL, strstr($url, '?', true));
+        
+        $this->assertSame(IuCasAuthentication::CAS_SESSION_VAR, $this->cas->getSessionVar());
+        
+        $this->assertSame(IuCasAuthentication::CAS_DEFAULT_TIMEOUT, $this->cas->getTimeout());
         
         // putenv('CAS_USER', 'u');
         // $this->assertSame('u', $cas->getSessionVar());
@@ -115,6 +122,9 @@ class IuCasTest extends TestCase
         // $this->assertSame('CAS_VALIDATION_URL', $cas->getCasValidationUrl());
     }
     
+    /**
+     * @runInSeparateProcess
+     */
     public function testCustomConfiguration()
     {
         
@@ -136,6 +146,45 @@ class IuCasTest extends TestCase
         $this->assertSame($dummyUrl, strstr($url, '?', true));
         putenv('CAS_LOGIN_URL');
         
+        $temp = 'usr';
+        putenv("CAS_SESSION_VAR={$temp}");
+        $this->assertSame($temp, $this->cas->getSessionVar());
+        putenv("CAS_SESSION_VAR");
+        
+        $temp = '1';
+        putenv("CAS_TIMEOUT={$temp}");
+        $this->assertEquals($temp, $this->cas->getTimeout());
+        
+    }
+    
+    /**
+     * @runInSeparateProcess
+     */
+    public function testDetectCasTicket()
+    {
+        $this->assertSame('', $this->cas->getCasTicket());
+        $_GET['casticket'] = 'foo';
+        $this->assertSame('foo', $this->cas->getCasTicket());
+        unset($_GET['casticket']);
+        $this->assertSame('', $this->cas->getCasTicket());
+    }
+    
+    /**
+     * @runInSeparateProcess
+     */
+    public function testDetectOrSetSessionUser()
+    {
+        $this->assertFalse(isset($_SESSION[ $this->cas->getSessionVar() ]));
+        $this->assertSame(null, $this->cas->getUserName());
+        
+        $temp = "bob";
+        $this->cas->setUserName($temp);
+        $this->assertSame($temp, $_SESSION[ $this->cas->getSessionVar() ]);
+        $this->assertSame($temp, $this->cas->getUserName());
+        
+        $this->cas->setUserName(null);
+        $this->assertFalse(isset($_SESSION[ $this->cas->getSessionVar() ]));
+        $this->assertSame(null, $this->cas->getUserName());
     }
     
     /**
@@ -147,14 +196,21 @@ class IuCasTest extends TestCase
         // $this->assertEmpty($arr);
         $this->assertEmpty($this->cas->getCasTicket());
         
-        $this->cas->setExit(function() {throw new \UnexpectedValueException('', http_response_code());});
-        
         try {
-            $this->cas->authenticate(); // Should redirect (to CAS) and exit
-            $this->assertTrue(false);
+            $this->cas->authenticate(
+                function () { // onFailure
+                    $this->fail('Authentication was not supposed to fail.');
+                },
+                function () { // onSuccess
+                    $this->fail('Authentication was not supposed to succeed.');
+                },
+                function () { // onLogin
+                    throw new \UnexpectedValueException('', (int) http_response_code());
+                }
+            );
         }
         catch (\UnexpectedValueException $uve) {
-            $this->assertEquals("303", $uve->getCode());
+            $this->assertTrue(true);
         }
     }
     
@@ -163,7 +219,6 @@ class IuCasTest extends TestCase
      */
     public function testAuthenticationWithSuccessfulValidation()
     {
-
         $dummyTicket = 'phpunit';
         $expectedUser = 'test_user'; // should match what's sent by server/validate/yes (the test URL handled by index.php)
 
@@ -173,22 +228,21 @@ class IuCasTest extends TestCase
 
         putenv("CAS_VALIDATION_URL=http://".self::$testServer."/validate/yes");
 
-        $this->cas->setExit(function() {throw new \UnexpectedValueException('', http_response_code());});
-
-        // If exception is thrown, test should fail
-        $this->cas->authenticate(); // Success expected, should set $_SESSION['CAS_USER']
-        
-        $this->assertSame($expectedUser, $this->cas->getUserName());
-
         // Test #authenticate() with callbacks
         $this->cas->authenticate(
             function() {  // Failure callback
                 $this->fail('Authentication was supposed to be successful.');
             },
-            function() {  // Success callback
+            function($user) use ($expectedUser) {  // Success callback
+                $this->assertSame($expectedUser, $user);
                 $this->assertTrue(true);
+            },
+            function() {  // Login callback
+                $this->fail('Authentication was not supposed to redirect to CAS.');
             }
         );
+        
+        
         
         // Cleanup
         putenv("CAS_VALIDATION_URL");
@@ -203,22 +257,15 @@ class IuCasTest extends TestCase
 
         putenv("CAS_VALIDATION_URL=http://".self::$testServer."/validate/no");
 
-        $this->cas->setExit(function() {throw new \UnexpectedValueException('', http_response_code());});
-
-        try {
-            $this->cas->authenticate();
-            $this->fail('Authentication was supposed to fail.');
-        } catch(\UnexpectedValueException $uve) {
-            $this->assertEquals("401", $uve->getCode());
-        }
-
-        // Test #authenticate() with callbacks
         $this->cas->authenticate(
             function() {  // Failure callback
                 $this->assertTrue(true);
             },
             function() {  // Success callback
                 $this->fail('Authentication was supposed to fail.');
+            },
+            function() {  // Login callback
+                $this->fail('Authentication was not supposed to redirect to CAS.');
             }
         );
         
